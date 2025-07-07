@@ -591,8 +591,14 @@
 
             saveFirebaseConfigBtn.addEventListener('click', () => {
                 try {
-                    // A bit of cleaning to allow for slight variations in pasting
-                    const configString = firebaseConfigInput.value.trim().replace(/^const\s+\w+\s*=\s*/, '');
+                    // More robust cleaning of the pasted config string
+                    let configString = firebaseConfigInput.value.trim();
+                    // Remove 'const firebaseConfig = ' if it exists
+                    configString = configString.replace(/^const\s+\w+\s*=\s*/, '');
+                    // Remove trailing semicolon if it exists
+                    if (configString.endsWith(';')) {
+                        configString = configString.slice(0, -1);
+                    }
                     const config = JSON.parse(configString);
                     initializeAppWithConfig(config);
                 } catch (error) {
