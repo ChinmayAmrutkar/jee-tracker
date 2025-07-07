@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEE Conquest: Ultimate Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .status-badge {
+            transition: all 0.2s ease-in-out;
+        }
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        /* For Firefox */
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #94a3b8 #f1f5f9;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Firebase Modal -->
+    <div id="firebase-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-2xl font-bold mb-4 text-slate-800">Welcome to JEE Conquest!</h2>
+            <p class="mb-6 text-slate-600">To save your progress, this app uses Firebase. Please provide your Firebase configuration.</p>
+            <textarea id="firebase-config-input" class="w-full h-40 p-2 border border-slate-300 rounded-md mb-4 font-mono text-sm" placeholder="Paste your Firebase config object here..."></textarea>
+            <button id="save-firebase-config" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Connect & Start</button>
+             <p class="text-xs text-slate-400 mt-4">Don't have one? <a href="https://console.firebase.google.com/" target="_blank" class="underline">Create a Firebase project</a>, add a web app, and copy the config here.</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden">
+        <header class="bg-white shadow-md sticky top-0 z-40">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <i class="fas fa-rocket text-3xl text-blue-600"></i>
+                        <h1 class="text-xl sm:text-2xl font-bold ml-3">JEE Conquest</h1>
+                    </div>
+                    <div id="user-info" class="text-xs text-slate-400"></div>
+                </div>
+                <div id="motivational-quote" class="text-center py-4 border-t border-slate-200">
+                    <p class="text-sm sm:text-base italic text-slate-600">"</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <!-- Tabs -->
+            <div class="border-b border-slate-200 mb-6">
+                <nav class="flex -mb-px" aria-label="Tabs">
+                    <button data-tab="dashboard" class="tab-btn tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Dashboard</button>
+                    <button data-tab="physics" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 mx-4">Physics</button>
+                    <button data-tab="chemistry" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 mx-4">Chemistry</button>
+                    <button data-tab="mathematics" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 mx-4">Mathematics</button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-content">
+                <!-- Dashboard -->
+                <div id="dashboard-content" class="tab-pane">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-slate-800">Overall Progress</h3>
+                            <div class="relative pt-1 mt-4">
+                                <div class="overflow-hidden h-4 text-xs flex rounded-full bg-blue-200">
+                                    <div id="overall-progress-bar" style="width: 0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
+                                </div>
+                                <p id="overall-progress-text" class="text-right text-sm font-medium text-blue-600 mt-1">0%</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow text-center">
+                            <h3 class="text-lg font-semibold text-slate-800">Topics Mastered</h3>
+                            <p id="topics-mastered" class="text-4xl font-bold text-green-500 mt-2">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow text-center">
+                            <h3 class="text-lg font-semibold text-slate-800">Days to Go</h3>
+                            <p id="days-left" class="text-4xl font-bold text-amber-500 mt-2">0</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div id="physics-summary" class="subject-summary bg-white p-6 rounded-lg shadow"></div>
+                        <div id="chemistry-summary" class="subject-summary bg-white p-6 rounded-lg shadow"></div>
+                        <div id="mathematics-summary" class="subject-summary bg-white p-6 rounded-lg shadow"></div>
+                    </div>
+                </div>
+
+                <!-- Subject Panes (generated by JS) -->
+                <div id="physics-content" class="tab-pane hidden"></div>
+                <div id="chemistry-content" class="tab-pane hidden"></div>
+                <div id="mathematics-content" class="tab-pane hidden"></div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Topic Modal -->
+    <div id="topic-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg transform transition-all scale-95 opacity-0">
+            <div class="flex justify-between items-start">
+                <h2 id="modal-topic-title" class="text-2xl font-bold mb-4 text-slate-800"></h2>
+                <button id="close-modal" class="text-2xl text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <div class="mb-6">
+                <p class="text-sm text-slate-500">Update your progress for this topic.</p>
+            </div>
+            
+            <!-- Status Update -->
+            <div class="mb-6">
+                <h3 class="font-semibold mb-3 text-slate-700">Status</h3>
+                <div id="modal-status-options" class="flex flex-wrap gap-2">
+                    <!-- Status buttons will be injected here -->
+                </div>
+            </div>
+
+            <!-- Confidence Score -->
+            <div>
+                <h3 class="font-semibold mb-3 text-slate-700">Confidence Score</h3>
+                <div id="modal-confidence-stars" class="flex items-center text-3xl text-slate-300">
+                    <!-- Stars will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DATA SOURCE (from the provided document) ---
+        const jeeSyllabus = {
+            physics: [
+                { topic: "Units and Measurements", difficulty: 2, weightage: "High" },
+                { topic: "Motion in straight line", difficulty: 2, weightage: "Low" },
+                { topic: "Motion in plane", difficulty: 3, weightage: "Low" },
+                { topic: "Laws of motion", difficulty: 3, weightage: "Medium" },
+                { topic: "Work, energy and power", difficulty: 3, weightage: "Medium" },
+                { topic: "Rotational motion", difficulty: 4, weightage: "High" },
+                { topic: "Gravitation", difficulty: 3, weightage: "Medium" },
+                { topic: "Mechanical properties of liquid", difficulty: 3, weightage: "Medium" },
+                { topic: "Thermal properties of matter", difficulty: 3, weightage: "Medium" },
+                { topic: "Thermodynamics", difficulty: 4, weightage: "High" },
+                { topic: "Kinetic Theory", difficulty: 3, weightage: "Medium" },
+                { topic: "Oscillations", difficulty: 3, weightage: "Low" },
+                { topic: "Waves", difficulty: 3, weightage: "Low" },
+                { topic: "Electrostatics", difficulty: 4, weightage: "High" },
+                { topic: "Capacitance", difficulty: 3, weightage: "Medium" },
+                { topic: "Current & electricity", difficulty: 4, weightage: "High" },
+                { topic: "Magnetism", difficulty: 4, weightage: "High" },
+                { topic: "Electromagnetic induction", difficulty: 4, weightage: "Medium" },
+                { topic: "Alternating current", difficulty: 3, weightage: "Medium" },
+                { topic: "Electromagnetic waves", difficulty: 3, weightage: "Medium" },
+                { topic: "Ray optics", difficulty: 4, weightage: "High" },
+                { topic: "Wave optics", difficulty: 4, weightage: "Medium" },
+                { topic: "Modern Physics", difficulty: 4, weightage: "High" },
+                { topic: "Semiconductors", difficulty: 3, weightage: "Medium" }
+            ],
+            chemistry: [
+                { topic: "Mole and equivalent concept", difficulty: 2, weightage: "Medium" },
+                { topic: "Structure of atom", difficulty: 3, weightage: "Medium" },
+                { topic: "Periodic table", difficulty: 3, weightage: "Medium" },
+                { topic: "Chemical bonding", difficulty: 3, weightage: "High" },
+                { topic: "Thermodynamics", difficulty: 4, weightage: "High" },
+                { topic: "Chemical and ionic equilibrium", difficulty: 4, weightage: "High" },
+                { topic: "Redox reactions", difficulty: 2, weightage: "Medium" },
+                { topic: "Organic chemistry", difficulty: 4, weightage: "High" },
+                { topic: "Hydrocarbons", difficulty: 3, weightage: "Medium" },
+                { topic: "Haloalkanes and Haloarenes", difficulty: 3, weightage: "Medium" },
+                { topic: "Alcohol, phenol and ether", difficulty: 3, weightage: "Medium" },
+                { topic: "Aldehyde, ketone and carboxylic acid", difficulty: 4, weightage: "High" },
+                { topic: "Amines", difficulty: 3, weightage: "Medium" },
+                { topic: "Biomolecules", difficulty: 2, weightage: "Medium" },
+                { topic: "Solutions", difficulty: 3, weightage: "Medium" },
+                { topic: "Electrochemistry", difficulty: 4, weightage: "High" },
+                { topic: "Chemical kinetics", difficulty: 4, weightage: "High" },
+                { topic: "D-F block", difficulty: 3, weightage: "Medium" },
+                { topic: "P-block", difficulty: 3, weightage: "Medium" },
+                { topic: "Coordination compound", difficulty: 4, weightage: "High" }
+            ],
+            mathematics: [
+                { topic: "Trigonometry functions", difficulty: 3, weightage: "Medium" },
+                { topic: "Sequence and series", difficulty: 3, weightage: "Medium" },
+                { topic: "Sets", difficulty: 2, weightage: "Low" },
+                { topic: "Relations and functions", difficulty: 2, weightage: "Low" },
+                { topic: "Permutation and combination", difficulty: 3, weightage: "Medium" },
+                { topic: "Binomial Theorem", difficulty: 3, weightage: "Medium" },
+                { topic: "Straight lines", difficulty: 3, weightage: "Medium" },
+                { topic: "Conic sections", difficulty: 4, weightage: "High" },
+                { topic: "3-D geometry", difficulty: 4, weightage: "High" },
+                { topic: "Limits", difficulty: 3, weightage: "Medium" },
+                { topic: "Probability", difficulty: 3, weightage: "Medium" },
+                { topic: "Statistics", difficulty: 2, weightage: "Low" },
+                { topic: "Inverse trigonometry", difficulty: 3, weightage: "Low" },
+                { topic: "Matrices", difficulty: 3, weightage: "High" },
+                { topic: "Determinants", difficulty: 3, weightage: "High" },
+                { topic: "Continuity and differentiability", difficulty: 4, weightage: "High" },
+                { topic: "Application of derivatives", difficulty: 4, weightage: "Medium" },
+                { topic: "Integration", difficulty: 5, weightage: "High" },
+                { topic: "Area under curve", difficulty: 4, weightage: "Medium" },
+                { topic: "Differential equation", difficulty: 5, weightage: "High" },
+                { topic: "Quadratic equations", difficulty: 3, weightage: "Medium" },
+                { topic: "Vector - 3D", difficulty: 4, weightage: "High" },
+                { topic: "Solution of triangle", difficulty: 3, weightage: "Low" },
+                { topic: "Complex number", difficulty: 3, weightage: "Medium" },
+                { topic: "Circle", difficulty: 3, weightage: "Medium" }
+            ]
+        };
+
+        const motivationalQuotes = [
+            "Believe you can and you're halfway there.",
+            "The secret of getting ahead is getting started.",
+            "It’s not whether you get knocked down; it’s whether you get up.",
+            "The future belongs to those who believe in the beauty of their dreams.",
+            "Success is the sum of small efforts, repeated day in and day out.",
+            "Don't watch the clock; do what it does. Keep going.",
+            "The only place where success comes before work is in the dictionary.",
+            "Push yourself, because no one else is going to do it for you."
+        ];
+
+        const statusLevels = {
+            'Not Started': { color: 'slate', value: 0 },
+            'Learning': { color: 'amber', value: 1 },
+            'Practicing': { color: 'sky', value: 2 },
+            'Mastered': { color: 'green', value: 3 }
+        };
+
+        // --- GLOBAL APP STATE ---
+        let db, auth, userId;
+        let currentProgress = {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- UI ELEMENTS ---
+        const firebaseModal = document.getElementById('firebase-modal');
+        const mainContent = document.getElementById('main-content');
+        const firebaseConfigInput = document.getElementById('firebase-config-input');
+        const saveFirebaseConfigBtn = document.getElementById('save-firebase-config');
+        const quoteElement = document.getElementById('motivational-quote').querySelector('p');
+        const daysLeftElement = document.getElementById('days-left');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        const topicModal = document.getElementById('topic-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const modalTopicTitle = document.getElementById('modal-topic-title');
+        const modalStatusOptions = document.getElementById('modal-status-options');
+        const modalConfidenceStars = document.getElementById('modal-confidence-stars');
+        
+        // --- INITIALIZATION ---
+        
+        function initializeAppWithConfig(firebaseConfig) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Hide modal, show content
+                firebaseModal.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                
+                // Store config in localStorage
+                localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
+
+                setupAuthListener();
+                setupUI();
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                alert("Invalid Firebase configuration. Please check the console for details and refresh the page.");
+                localStorage.removeItem('firebaseConfig');
+            }
+        }
+        
+        function setupAuthListener() {
+             onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('user-info').textContent = `User ID: ${userId}`;
+                    listenToProgress();
+                } else {
+                    try {
+                        // Check for Canvas-provided token first
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            // Fallback to anonymous sign-in
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Authentication failed:", error);
+                    }
+                }
+            });
+        }
+
+
+        function setupUI() {
+            // Set motivational quote
+            quoteElement.textContent = `"${motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]}"`;
+
+            // Set days left
+            const endDate = new Date('2025-11-10');
+            const today = new Date();
+            const diffTime = Math.max(endDate - today, 0);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            daysLeftElement.textContent = diffDays;
+
+            // Create subject panes
+            Object.keys(jeeSyllabus).forEach(subject => {
+                const contentPane = document.getElementById(`${subject}-content`);
+                contentPane.innerHTML = createSubjectTopicList(subject);
+            });
+
+            // Setup tab switching
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.dataset.tab;
+                    
+                    tabButtons.forEach(btn => btn.classList.remove('tab-active'));
+                    button.classList.add('tab-active');
+
+                    tabPanes.forEach(pane => pane.classList.add('hidden'));
+                    document.getElementById(`${tab}-content`).classList.remove('hidden');
+                });
+            });
+
+            // Modal listeners
+            closeModalBtn.addEventListener('click', closeTopicModal);
+            topicModal.addEventListener('click', (e) => {
+                if (e.target === topicModal) {
+                    closeTopicModal();
+                }
+            });
+
+            // Topic click listeners
+            document.body.addEventListener('click', (e) => {
+                const topicCard = e.target.closest('.topic-card');
+                if (topicCard) {
+                    const subject = topicCard.dataset.subject;
+                    const topic = topicCard.dataset.topic;
+                    openTopicModal(subject, topic);
+                }
+            });
+        }
+
+        // --- FIREBASE & DATA HANDLING ---
+
+        function listenToProgress() {
+            if (!userId) return;
+            const docRef = doc(db, "artifacts", appId, "users", userId);
+            
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    currentProgress = docSnap.data();
+                } else {
+                    // Initialize document if it doesn't exist
+                    console.log("No progress found. Initializing new document.");
+                    const initialData = {};
+                    Object.keys(jeeSyllabus).forEach(subject => {
+                        initialData[subject] = {};
+                        jeeSyllabus[subject].forEach(topic => {
+                            initialData[subject][topic.topic] = {
+                                status: 'Not Started',
+                                confidence: 0
+                            };
+                        });
+                    });
+                    setDoc(docRef, initialData);
+                    currentProgress = initialData;
+                }
+                updateAllUI();
+            });
+        }
+
+        async function updateTopicProgress(subject, topic, newStatus, newConfidence) {
+            if (!userId) return;
+            const docRef = doc(db, "artifacts", appId, "users", userId);
+            const updatePayload = {};
+
+            if (newStatus !== undefined) {
+                updatePayload[`${subject}.${topic}.status`] = newStatus;
+            }
+            if (newConfidence !== undefined) {
+                updatePayload[`${subject}.${topic}.confidence`] = newConfidence;
+            }
+            
+            await updateDoc(docRef, updatePayload);
+        }
+
+        // --- UI RENDERING & UPDATES ---
+
+        function createSubjectTopicList(subject) {
+            const topics = jeeSyllabus[subject];
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${topics.map(topic => `
+                        <div id="card-${subject}-${topic.topic.replace(/\s+/g, '-')}" 
+                             data-subject="${subject}" 
+                             data-topic="${topic.topic}"
+                             class="topic-card bg-white p-4 rounded-lg shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-semibold text-slate-800 pr-2">${topic.topic}</h4>
+                                <span id="badge-${subject}-${topic.topic.replace(/\s+/g, '-')}" class="status-badge text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div id="stars-${subject}-${topic.topic.replace(/\s+/g, '-')}" class="text-lg text-slate-300">
+                                    ${[...Array(5)].map((_, i) => `<i class="fa-solid fa-star"></i>`).join('')}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    <span>Diff: ${topic.difficulty}/5</span> | <span>${topic.weightage}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function updateAllUI() {
+            if (!currentProgress || Object.keys(currentProgress).length === 0) return;
+
+            let totalTopics = 0;
+            let masteredTopics = 0;
+            let totalWeightedProgress = 0;
+
+            Object.keys(jeeSyllabus).forEach(subject => {
+                let subjectTotal = jeeSyllabus[subject].length;
+                let subjectMastered = 0;
+                let subjectProgress = 0;
+
+                jeeSyllabus[subject].forEach(topicInfo => {
+                    const topicProgress = currentProgress[subject]?.[topicInfo.topic] || { status: 'Not Started', confidence: 0 };
+                    
+                    // Update individual topic card
+                    updateTopicCard(subject, topicInfo.topic, topicProgress.status, topicProgress.confidence);
+
+                    if (topicProgress.status === 'Mastered') {
+                        subjectMastered++;
+                    }
+                    subjectProgress += statusLevels[topicProgress.status].value;
+                });
+
+                totalTopics += subjectTotal;
+                masteredTopics += subjectMastered;
+                totalWeightedProgress += subjectProgress;
+
+                // Update subject summary on dashboard
+                const summaryEl = document.getElementById(`${subject}-summary`);
+                const percentage = (subjectProgress / (subjectTotal * 3)) * 100;
+                summaryEl.innerHTML = `
+                    <h3 class="text-lg font-semibold capitalize">${subject}</h3>
+                    <div class="relative pt-1 mt-4">
+                        <div class="overflow-hidden h-3 text-xs flex rounded-full bg-slate-200">
+                            <div style="width: ${percentage}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
+                        </div>
+                        <p class="text-right text-sm font-medium text-blue-600 mt-1">${Math.round(percentage)}%</p>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-2">${subjectMastered} / ${subjectTotal} topics mastered.</p>
+                `;
+            });
+
+            // Update overall dashboard stats
+            const overallPercentage = (totalWeightedProgress / (totalTopics * 3)) * 100;
+            document.getElementById('overall-progress-bar').style.width = `${overallPercentage}%`;
+            document.getElementById('overall-progress-text').textContent = `${Math.round(overallPercentage)}%`;
+            document.getElementById('topics-mastered').textContent = masteredTopics;
+        }
+
+        function updateTopicCard(subject, topic, status, confidence) {
+            const safeTopicId = topic.replace(/\s+/g, '-');
+            const badge = document.getElementById(`badge-${subject}-${safeTopicId}`);
+            const starsContainer = document.getElementById(`stars-${subject}-${safeTopicId}`);
+
+            if (badge) {
+                const statusInfo = statusLevels[status];
+                badge.textContent = status;
+                badge.className = `status-badge text-xs font-medium px-2.5 py-0.5 rounded-full bg-${statusInfo.color}-100 text-${statusInfo.color}-800`;
+            }
+
+            if (starsContainer) {
+                starsContainer.innerHTML = [...Array(5)].map((_, i) => 
+                    `<i class="fa-solid fa-star ${i < confidence ? 'text-amber-400' : 'text-slate-300'}"></i>`
+                ).join('');
+            }
+        }
+
+        // --- MODAL LOGIC ---
+        
+        function openTopicModal(subject, topic) {
+            const topicProgress = currentProgress[subject]?.[topic] || { status: 'Not Started', confidence: 0 };
+            
+            modalTopicTitle.textContent = topic;
+            topicModal.dataset.subject = subject;
+            topicModal.dataset.topic = topic;
+
+            // Render status options
+            modalStatusOptions.innerHTML = Object.keys(statusLevels).map(status => {
+                const isActive = status === topicProgress.status;
+                const statusInfo = statusLevels[status];
+                return `<button data-status="${status}" class="modal-status-btn text-sm font-semibold py-2 px-4 rounded-full transition-colors ${isActive ? `bg-${statusInfo.color}-500 text-white shadow` : `bg-slate-100 hover:bg-slate-200`}">
+                            ${status}
+                        </button>`;
+            }).join('');
+
+            // Render confidence stars
+            renderConfidenceStars(topicProgress.confidence);
+
+            topicModal.classList.remove('hidden');
+            setTimeout(() => {
+                topicModal.querySelector('div > div').classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        function closeTopicModal() {
+            topicModal.querySelector('div > div').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                topicModal.classList.add('hidden');
+            }, 200);
+        }
+
+        function renderConfidenceStars(level) {
+            modalConfidenceStars.innerHTML = [...Array(5)].map((_, i) => 
+                `<i data-level="${i + 1}" class="modal-star fa-solid fa-star cursor-pointer transition-colors ${i < level ? 'text-amber-400' : 'hover:text-amber-200'}"></i>`
+            ).join('');
+        }
+        
+        // Modal event listeners (delegated)
+        modalStatusOptions.addEventListener('click', e => {
+            if (e.target.classList.contains('modal-status-btn')) {
+                const newStatus = e.target.dataset.status;
+                const subject = topicModal.dataset.subject;
+                const topic = topicModal.dataset.topic;
+                updateTopicProgress(subject, topic, newStatus, undefined);
+                closeTopicModal();
+            }
+        });
+
+        modalConfidenceStars.addEventListener('click', e => {
+            if (e.target.classList.contains('modal-star')) {
+                const newConfidence = parseInt(e.target.dataset.level, 10);
+                const subject = topicModal.dataset.subject;
+                const topic = topicModal.dataset.topic;
+                updateTopicProgress(subject, topic, undefined, newConfidence);
+                renderConfidenceStars(newConfidence); // Immediately update UI in modal
+            }
+        });
+
+        // --- ENTRY POINT ---
+        window.onload = () => {
+            const savedConfig = localStorage.getItem('firebaseConfig');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    initializeAppWithConfig(config);
+                } catch (e) {
+                    console.error("Failed to parse saved Firebase config", e);
+                    localStorage.removeItem('firebaseConfig');
+                    firebaseModal.classList.remove('hidden');
+                }
+            } else {
+                firebaseModal.classList.remove('hidden');
+            }
+
+            saveFirebaseConfigBtn.addEventListener('click', () => {
+                try {
+                    // A bit of cleaning to allow for slight variations in pasting
+                    const configString = firebaseConfigInput.value.trim().replace(/^const\s+\w+\s*=\s*/, '');
+                    const config = JSON.parse(configString);
+                    initializeAppWithConfig(config);
+                } catch (error) {
+                    alert("Invalid JSON format for Firebase config. Please paste the exact object from the Firebase console.");
+                    console.error(error);
+                }
+            });
+        };
+
+    </script>
+</body>
+</html>
