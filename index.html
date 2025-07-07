@@ -599,10 +599,19 @@
                     if (configString.endsWith(';')) {
                         configString = configString.slice(0, -1);
                     }
-                    const config = JSON.parse(configString);
+                    
+                    // Use the Function constructor as a safer alternative to eval().
+                    // This correctly parses a JavaScript object literal, which is not strict JSON.
+                    const config = new Function('return ' + configString)();
+
+                    // Basic validation to ensure it's a plausible config object
+                    if (!config.apiKey || !config.authDomain) {
+                        throw new Error("Pasted text is not a valid Firebase config object.");
+                    }
+
                     initializeAppWithConfig(config);
                 } catch (error) {
-                    alert("Invalid JSON format for Firebase config. Please paste the exact object from the Firebase console.");
+                    alert("Invalid Firebase configuration. Please paste the entire config object from the Firebase console.");
                     console.error(error);
                 }
             });
