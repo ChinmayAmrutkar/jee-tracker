@@ -322,6 +322,8 @@
         const startDateInput = document.getElementById('start-date');
         const currentWeekView = document.getElementById('current-week-view');
         const revisionView = document.getElementById('revision-view');
+        const currentWeekView = document.getElementById('current-week-view');
+        const revisionView = document.getElementById('revision-view');
 
         // --- INITIALIZATION ---
         
@@ -412,6 +414,16 @@
                 await updateScheduleData({ startDate: startDateInput.value });
             });
             
+            document.getElementById('schedule-content').addEventListener('click', e => {
+                const target = e.target.closest('.topic-link');
+                if (target) {
+                    const subject = target.dataset.subject;
+                    const topic = target.dataset.topic;
+                    openTopicModal(subject, topic);
+                }
+            });
+
+            // Add this inside the setupUI function
             document.getElementById('schedule-content').addEventListener('click', e => {
                 const target = e.target.closest('.topic-link');
                 if (target) {
@@ -580,81 +592,122 @@
         }
         
         function renderDynamicSchedule() {
-            const scheduleData = currentProgress.schedule || { startDate: '2025-07-10' };
-            startDateInput.value = scheduleData.startDate;
+    const scheduleData = currentProgress.schedule || { startDate: '2025-07-10' };
+    startDateInput.value = scheduleData.startDate;
 
-            const startDate = new Date(scheduleData.startDate + 'T00:00:00');
-            const today = new Date();
-            const diffTime = today - startDate;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const currentWeekNumber = Math.floor(diffDays / 7) + 1;
+    const startDate = new Date(scheduleData.startDate + 'T00:00:00');
+    const today = new Date();
+    const diffTime = today - startDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const currentWeekNumber = Math.floor(diffDays / 7) + 1;
 
-            if (currentWeekNumber > 0 && currentWeekNumber <= schedulePlan.length) {
-                const weekData = schedulePlan[currentWeekNumber - 1];
-                
-                const weekStartDate = new Date(startDate);
-                weekStartDate.setDate(startDate.getDate() + (currentWeekNumber - 1) * 7);
-                const weekEndDate = new Date(weekStartDate);
-                weekEndDate.setDate(weekStartDate.getDate() + 6);
+    if (currentWeekNumber > 0 && currentWeekNumber <= schedulePlan.length) {
+        const weekData = schedulePlan[currentWeekNumber - 1];
+        
+        const weekStartDate = new Date(startDate);
+        weekStartDate.setDate(startDate.getDate() + (currentWeekNumber - 1) * 7);
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekStartDate.getDate() + 6);
 
-                const subjects = ['physics', 'chemistry', 'mathematics'];
-                let weeklyTopics = [];
-                subjects.forEach(subject => {
-                    const topicString = weekData[subject];
-                    const topics = topicString.split(',').map(t => t.trim());
-                    topics.forEach(topic => weeklyTopics.push({ subject, topic }));
-                });
+        const subjects = ['physics', 'chemistry', 'mathematics'];
+        let weeklyTopics = [];
+        subjects.forEach(subject => {
+            const topicString = weekData[subject];
+            const topics = topicString.split(',').map(t => t.trim());
+            topics.forEach(topic => weeklyTopics.push({ subject, topic }));
+        });
 
-                let completedTopics = 0;
-                weeklyTopics.forEach(t => {
-                    const progress = currentProgress[t.subject]?.[t.topic];
-                    if (progress && progress.status !== 'Not Started') {
-                        completedTopics++;
-                    }
-                });
-
-                const weeklyProgressPercent = weeklyTopics.length > 0 ? (completedTopics / weeklyTopics.length) * 100 : 0;
-
-                currentWeekView.innerHTML = `
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex justify-between items-baseline">
-                            <h2 class="text-2xl font-bold text-slate-800">This Week's Plan (Week ${currentWeekNumber})</h2>
-                            <p class="text-sm text-slate-500">${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</p>
-                        </div>
-                        <p class="mt-1 text-base italic text-blue-600">Weekly Goal: ${weekData.goal}</p>
-                        
-                        <div class="mt-4">
-                            <h3 class="text-md font-semibold text-slate-700">Weekly Progress</h3>
-                            <div class="relative pt-1 mt-2">
-                                <div class="overflow-hidden h-3 text-xs flex rounded-full bg-slate-200">
-                                    <div style="width: ${weeklyProgressPercent}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500 transition-all duration-500"></div>
-                                </div>
-                                <p class="text-right text-sm font-medium text-green-600 mt-1">${Math.round(weeklyProgressPercent)}%</p>
-                            </div>
-                        </div>
-
-                        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            ${subjects.map(subject => `
-                                <div>
-                                    <h4 class="text-lg font-semibold text-slate-800 capitalize border-b-2 pb-2 border-${subject === 'physics' ? 'red' : subject === 'chemistry' ? 'green' : 'blue'}-500">${subject}</h4>
-                                    <ul class="mt-3 space-y-2">
-                                        ${weekData[subject].split(',').map(topic => `
-                                            <li class="text-sm text-slate-600 topic-link" data-subject="${subject}" data-topic="${topic.trim()}">
-                                                <i class="fa-solid fa-arrow-right-long text-xs mr-2 text-slate-400"></i> ${topic.trim()}
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                currentWeekView.innerHTML = `<div class="bg-white p-6 rounded-lg shadow text-center"><p class="text-slate-600">The schedule has not started yet or has finished. Please adjust the start date.</p></div>`;
+        let completedTopics = 0;
+        weeklyTopics.forEach(t => {
+            const progress = currentProgress[t.subject]?.[t.topic];
+            if (progress && progress.status !== 'Not Started') {
+                completedTopics++;
             }
+        });
+
+        const weeklyProgressPercent = weeklyTopics.length > 0 ? (completedTopics / weeklyTopics.length) * 100 : 0;
+
+        currentWeekView.innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-baseline">
+                    <h2 class="text-2xl font-bold text-slate-800">This Week's Plan (Week ${currentWeekNumber})</h2>
+                    <p class="text-sm text-slate-500">${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}</p>
+                </div>
+                <p class="mt-1 text-base italic text-blue-600">Weekly Goal: ${weekData.goal}</p>
+                
+                <div class="mt-4">
+                    <h3 class="text-md font-semibold text-slate-700">Weekly Progress</h3>
+                    <div class="relative pt-1 mt-2">
+                        <div class="overflow-hidden h-3 text-xs flex rounded-full bg-slate-200">
+                            <div style="width: ${weeklyProgressPercent}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500 transition-all duration-500"></div>
+                        </div>
+                        <p class="text-right text-sm font-medium text-green-600 mt-1">${Math.round(weeklyProgressPercent)}%</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    ${subjects.map(subject => `
+                        <div>
+                            <h4 class="text-lg font-semibold text-slate-800 capitalize border-b-2 pb-2 border-${subject === 'physics' ? 'red' : subject === 'chemistry' ? 'green' : 'blue'}-500">${subject}</h4>
+                            <ul class="mt-3 space-y-2">
+                                ${weekData[subject].split(',').map(topic => `
+                                    <li class="text-sm text-slate-600 topic-link" data-subject="${subject}" data-topic="${topic.trim()}">
+                                        <i class="fa-solid fa-arrow-right-long text-xs mr-2 text-slate-400"></i> ${topic.trim()}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        currentWeekView.innerHTML = `<div class="bg-white p-6 rounded-lg shadow text-center"><p class="text-slate-600">The schedule has not started yet or has finished. Please adjust the start date.</p></div>`;
+    }
+
+    renderRevisionList();
+}
+
+function renderRevisionList() {
+    let topicsForRevision = [];
+    Object.keys(jeeSyllabus).forEach(subject => {
+        jeeSyllabus[subject].forEach(topicInfo => {
+            const progress = currentProgress[subject]?.[topicInfo.topic];
+            if (progress && progress.status !== 'Not Started' && progress.confidence > 0 && progress.confidence < 3) {
+                topicsForRevision.push({ subject, topic: topicInfo.topic, confidence: progress.confidence });
+            }
+        });
+    });
+
+    // Sort by lowest confidence first
+    topicsForRevision.sort((a, b) => a.confidence - b.confidence);
+
+    if (topicsForRevision.length > 0) {
+        revisionView.innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-bold text-slate-800">Topics for Revision</h2>
+                <p class="mt-1 text-sm text-slate-500">These are topics you've studied but have a low confidence score. It's a good idea to review them!</p>
+                <ul class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${topicsForRevision.slice(0, 9).map(t => `
+                        <li class="p-3 bg-amber-50 rounded-md topic-link" data-subject="${t.subject}" data-topic="${t.topic}">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold text-sm text-amber-800">${t.topic}</span>
+                                <div class="text-amber-500">
+                                    ${[...Array(5)].map((_, i) => `<i class="fa-solid fa-star ${i < t.confidence ? 'text-amber-400' : 'text-slate-300'}"></i>`).join('')}
+                                </div>
+                            </div>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    } else {
+        revisionView.innerHTML = '';
+    }
+
 
             renderRevisionList();
-        }
+  }      
 
         function renderRevisionList() {
             let topicsForRevision = [];
